@@ -4,13 +4,37 @@ const project = (title) => {
     return { title };
 };
 
-const projectTask = (taskName, taskDate, taskPriority) => {
-    return { taskName, taskDate, taskPriority }
+const task = (taskComplete, taskName, taskDate, taskPriority) => {
+    return {
+        taskName,
+        taskDate,
+        taskPriority,
+        taskComplete
+    }
 }
+
+const projectsAllTasks = (() => {
+    const allTasks = [];
+
+    const addProjectTasksSpot = () => allTasks.push([]);
+
+    const getProjectTasks = () => allTasks[DOMstuff.getSelectedProjectIndex()];
+
+    const getAllTasks = () => allTasks;
+
+    return {
+        addProjectTasksSpot,
+        getAllTasks,
+        getProjectTasks,
+    }
+
+})();
 
 
 const projectsList = (() => {
+
     let projects = [];
+
     const getProjectsList = () => projects;
 
     const setProjectsList = (newProjects) => projects = newProjects;
@@ -43,37 +67,46 @@ const projectsOperations = (() => {
         projectsList.setProjectsList(newProjectList);
     }
 
-    const addTask = () => {
-
+    const addTask = (taskComplete, taskName, taskDate, taskPriority) => {
+        const newTask = task(taskComplete, taskName, taskDate, taskPriority);
+        projectsAllTasks.getAllTasks()[DOMstuff.getSelectedProjectIndex()].push(newTask);
     }
+
+    const deleteProjectTasks = () => projectsAllTasks.getAllTasks().splice(DOMstuff.getProjectDeleteId(), 1);
 
     return {
         addProject,
         deleteProject,
-        createDefaultProject
+        createDefaultProject,
+        addTask,
+        deleteProjectTasks,
     }
 })();
 projectsOperations.createDefaultProject();
 
 const DOMstuff = (() => {
+    const taskTable = document.querySelector("table");
+    const tituloProjecto = document.querySelector(".tasks h1");
     const inputProject = document.querySelector(".input-project");
     const projectImg = document.querySelector(".project-img");
     const projectsContainer = document.querySelector(".projects-container");
     let projectsListDOM = Array.from(document.querySelector(".projects-container .project"));
     const projectsNameListDOM = Array.from(document.querySelector(".projects .project-name"));
-    const tasksListDOM = [];
-    const tasksContainer = document.querySelector(".tasks");
+    const tasksContainer = document.querySelector(".project-tasks");
     let inputProjectValue;
     let projectIndex = 1;
     let projectDeleteId;
+    let selectedProjectIndex;
 
     const addTask = () => {
         const taskName = document.querySelector("#task-name").value;
         const taskDate = document.querySelector("#task-date").value;
         const taskPriority = document.querySelector("#task-priority").value;
-        const newProjectTask = projectTask(taskName, taskDate, taskPriority);
-
+        projectsOperations.addTask(false, taskName, taskDate, taskPriority);
+        addTaskToTable(projectsAllTasks.getProjectTasks()[projectsAllTasks.getProjectTasks().length - 1]);
     }
+
+    const getSelectedProjectIndex = () => selectedProjectIndex;
 
     const getInputProjectValue = () => inputProjectValue;
 
@@ -81,51 +114,62 @@ const DOMstuff = (() => {
 
     const getProjectIndex = () => projectIndex;
 
+    const addTaskToTable = (task) => {
+        const taskFile = document.createElement("tr");
+        const taskCompleteColumn = document.createElement("td");
+        const taskNameColumn = document.createElement("td");
+        const taskDateColumn = document.createElement("td");
+        const taskPriorityColumn = document.createElement("td");
+        const taskComplete = document.createElement("input");
+        taskComplete.type = "checkbox";
+
+        taskCompleteColumn.append(taskComplete);
+        taskNameColumn.append(task.taskName);
+        taskDateColumn.append(task.taskDate);
+        taskPriorityColumn.append(task.taskPriority);
+
+        taskFile.appendChild(taskCompleteColumn);
+        taskFile.appendChild(taskNameColumn);
+        taskFile.appendChild(taskDateColumn);
+        taskFile.append(taskPriorityColumn);
+
+        taskTable.append(taskFile);
+    }
+
     const selectProject = (projectName) => {
         projectName.addEventListener("click", (e) => {
-            //console.log(projectName);
             projectsNameListDOM.forEach(projectNameDOM => {
                 projectNameDOM.classList.remove("project-name-selected");
-
-                /*if (projectNameDOM.getAttribute("index-project-name") === projectName.getAttribute("index-project-name")) {
-                    projectName.classList.add("project-name-selected");
-                    tasksListDOM.forEach(tasks => {
-                        if (tasks.getAttribute("index-task") === projectNameDOM.getAttribute("index-project-name")) {
-                            tasksContainer.removeChild(tasksContainer.childNodes[2]);
-                            tasksContainer.appendChild(tasks);
-                            tasks.textContent = tasks.getAttribute("index-task");
-                            console.log(tasksContainer);
-                        }
-                    })
-                }*/
             })
             const projectNameSelectedIndex = projectName.getAttribute("index-project-name");
-            const projectNameSelected = document.querySelector(`[index-project-name = "${projectNameSelectedIndex}"]`);
-            projectNameSelected.classList.add("project-name-selected");
+            tituloProjecto.textContent = `Project - ${projectName.textContent}`;
+            selectedProjectIndex = parseInt(projectNameSelectedIndex);
+            projectName.classList.add("project-name-selected");
+            tasksContainer.setAttribute("index-task", projectNameSelectedIndex);
 
-            console.log(tasksContainer.childNodes[2]);
-            tasksContainer.removeChild(tasksContainer.childNodes[2]);
-            
-           // taskShowed.textContent = taskShowed.getAttribute("index-task");
-            //tasksContainer.appendChild(taskShowed);  
-            //console.log(projectNameSelected);
-            //projectNameSelected.classList.add("project-name-selected");
-            
+            for (let i = 1; i < taskTable.rows.length; i += 0) {
+                taskTable.deleteRow(i);
+            }
+
+
+            if (projectsAllTasks.getProjectTasks().length > 0) {
+                projectsAllTasks.getProjectTasks().forEach(task => {
+                    addTaskToTable(task);
+                });
+            }
         });
     }
 
     const addDefaultProject = () => {
+        projectsAllTasks.addProjectTasksSpot();
         const defaultProject = document.querySelector(".project-default");
         const projectDefaultName = document.querySelector(".project-name-default");
         const projectDefaultText = document.querySelector(".project-text-default");
         projectDefaultText.textContent = projectsList.getDefaultProject().title;
         const projectDefaultDelete = document.querySelector(".project-delete-default");
-        const projectTasksContainer = document.createElement("div");
-        projectTasksContainer.setAttribute("index-task", 0);
-        projectTasksContainer.classList.add("project-tasks");
-        tasksListDOM.push(projectTasksContainer);
         projectsListDOM.push(defaultProject);
         projectsNameListDOM.push(projectDefaultName);
+        selectedProjectIndex = 0;
         deleteProject(projectDefaultDelete);
         selectProject(projectDefaultName);
     }
@@ -146,6 +190,8 @@ const DOMstuff = (() => {
         //Asignando index
         projectIndex = projectsListDOM.length;
 
+        projectsAllTasks.addProjectTasksSpot();
+
         //Agregando projecto al array
         projectsOperations.addProject();
 
@@ -155,7 +201,6 @@ const DOMstuff = (() => {
         const projectNameContainer = document.createElement("div");
         const projectTextContainer = document.createElement("div");
         const projectDeleteBtn = document.createElement("div");
-        const projectTasksContainer = document.createElement("div");
 
         //Asignando contenido al cotnenedor del nombre del projecto.
         projectTextContainer.textContent = projectsList.getProjectsList()[projectIndex].title;
@@ -182,11 +227,6 @@ const DOMstuff = (() => {
         projectsListDOM.push(projectContainer);
         refreshProjects();
 
-        //Asignando un contenedor de tareas al projecto
-        projectTasksContainer.setAttribute("index-task", projectIndex);
-        projectTasksContainer.classList.add("project-tasks");
-        tasksListDOM.push(projectTasksContainer);
-
         //Agregando funciones para seleccionar y eliminar projecto
         deleteProject(projectDeleteBtn);
         selectProject(projectNameContainer);
@@ -206,24 +246,50 @@ const DOMstuff = (() => {
 
     const deleteProject = (projectDeleteBtn) => {
         projectDeleteBtn.addEventListener("click", (e) => {
+            let existSelected = false;
             let id = e.target.parentNode.getAttribute("id");
             projectDeleteId = parseInt(id);
+            const selectedProject = document.querySelector(".project-name-selected");
+            if (selectedProject.getAttribute("index-project-name") !== id) {
+                existSelected = true;
+            }
             projectsListDOM.forEach(project => {
                 if (project.getAttribute("id") === id) {
                     projectsOperations.deleteProject();
                     projectsListDOM.splice(projectDeleteId, 1);
                     projectsNameListDOM.splice(projectDeleteId, 1);
-                    tasksListDOM.splice(projectDeleteId, 1);
+                    if (existSelected === false) {
+                        if (projectsNameListDOM[projectDeleteId] !== undefined) {
+                            projectsNameListDOM[projectDeleteId].classList.add("project-name-selected");
+                            selectedProjectIndex = parseInt(document.querySelector(".project-name-selected").getAttribute("index-project-name"));
+                        }
+                        else if(projectDeleteId === projectsListDOM.length){
+                            projectsNameListDOM[projectDeleteId-1].classList.add("project-name-selected");
+                            selectedProjectIndex = parseInt(document.querySelector(".project-name-selected").getAttribute("index-project-name"));
+                        }
+                    }
+
+
+                    projectsOperations.deleteProjectTasks();
                     for (let i = projectDeleteId; i < projectsListDOM.length; i++) {
                         projectsListDOM[i].setAttribute("id", projectsListDOM.indexOf(projectsListDOM[i]));
                         projectsNameListDOM[i].setAttribute("index-project-name", projectsNameListDOM.indexOf(projectsNameListDOM[i]));
-                        tasksListDOM[i].setAttribute("index-task", tasksListDOM.indexOf(tasksListDOM[i]));
+
                     }
                 }
             })
             refreshProjects();
-        });
 
+            for (let i = 1; i < taskTable.rows.length; i += 0) {
+                taskTable.deleteRow(i);
+            }
+            console.log(projectsAllTasks.getProjectTasks());
+            if (projectsAllTasks.getProjectTasks().length > 0) {
+                projectsAllTasks.getProjectTasks().forEach(task => {
+                    addTaskToTable(task);
+                });
+            }
+        });
     }
 
     return {
@@ -232,7 +298,8 @@ const DOMstuff = (() => {
         getInputProjectValue,
         getProjectDeleteId,
         getProjectIndex,
-        addDefaultProject
+        addDefaultProject,
+        getSelectedProjectIndex,
     };
 })();
 

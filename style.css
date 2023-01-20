@@ -175,4 +175,17 @@ link:visited {
 .project-name:hover {
   transform: translateX(1rem);
   background-color: rgba(255, 255, 0, 0.382);
+}
+
+.tasks {
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+table {
+  border: 1px solid black;
+  width: 100%;
+}
+table th {
+  font-size: 2rem;
 }/*# sourceMappingURL=style.css.map */
